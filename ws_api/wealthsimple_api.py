@@ -688,7 +688,7 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             merchant = act['spendMerchant']
             act['description'] = f"Credit card refund: {merchant}"
 
-        elif act['type'] == 'CREDIT_CARD' and act['subType'] == 'PAYMENT':
+        elif (act['type'] == 'CREDIT_CARD' and act['subType'] == 'PAYMENT') or act['type'] == 'CREDIT_CARD_PAYMENT':
             act['description'] = "Credit card payment"
 
         elif act['type'] == 'REIMBURSEMENT' and act['subType'] == 'CASHBACK':
