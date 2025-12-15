@@ -817,8 +817,8 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
         """Retrieve information on specific positions
         
         Args:
-            security_ids: list of Wealthsimple security ids, None will return all owened securities
-            currency: currency to return the amoutns in (CAD or USD)
+            security_ids: list of Wealthsimple security ids, None will return all owned securities
+            currency: currency to return the amounts in (CAD or USD)
         
         Returns:
             list[Any]: a list of positions by account
