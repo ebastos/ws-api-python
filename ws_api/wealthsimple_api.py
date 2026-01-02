@@ -409,8 +409,17 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             account['description'] = "Crypto"
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_RRIF':
              account['description'] = f"RRIF: self-directed"
+        elif account['unifiedAccountType'] == 'SELF_DIRECTED_SPOUSAL_RRIF':
+            account['description'] = f"RRIF: self-directed spousal"
         elif account['unifiedAccountType'] == 'CREDIT_CARD':
              account['description'] = "Credit card"
+        elif account['unifiedAccountType'] == 'MANAGED_NON_REGISTERED':
+            if any(feature['name'] == 'PRIVATE_CREDIT' for feature in account['accountFeatures']):
+                account['description'] = "Non-registered: managed - private credit"
+            if any(feature['name'] == 'PRIVATE_EQUITY' for feature in account['accountFeatures']):
+                account['description'] = "Non-registered: managed - private equity"
+        elif account['unifiedAccountType'] == 'SELF_DIRECTED_LIRA':
+            account['description'] = f"LIRA: self-directed"
         # TODO: Add other types as needed
 
     def get_account_balances(self, account_id):
