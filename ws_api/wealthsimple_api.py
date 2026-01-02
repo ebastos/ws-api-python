@@ -388,15 +388,15 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
         elif account['unifiedAccountType'] == 'CASH':
             account['description'] = "Cash: joint" if account['accountOwnerConfiguration'] == 'MULTI_OWNER' else "Cash"
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_RRSP':
-            account['description'] = f"RRSP: self-directed - {account['currency']}"
+            account['description'] = f"RRSP: self-directed"
         elif account['unifiedAccountType'] == 'MANAGED_RRSP':
-            account['description'] = f"RRSP: managed - {account['currency']}"
+            account['description'] = f"RRSP: managed"
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_SPOUSAL_RRSP':
-            account['description'] = f"RRSP: self-directed spousal - {account['currency']}"
+            account['description'] = f"RRSP: self-directed spousal"
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_TFSA':
-            account['description'] = f"TFSA: self-directed - {account['currency']}"
+            account['description'] = f"TFSA: self-directed"
         elif account['unifiedAccountType'] == 'MANAGED_TFSA':
-            account['description'] = f"TFSA: managed - {account['currency']}"
+            account['description'] = f"TFSA: managed"
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_NON_REGISTERED':
             account['description'] = "Non-registered: self-directed"
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_JOINT_NON_REGISTERED':
@@ -408,7 +408,7 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_CRYPTO':
             account['description'] = "Crypto"
         elif account['unifiedAccountType'] == 'SELF_DIRECTED_RRIF':
-             account['description'] = f"RRIF: self-directed - {account['currency']}"
+             account['description'] = f"RRIF: self-directed"
         elif account['unifiedAccountType'] == 'CREDIT_CARD':
              account['description'] = "Credit card"
         # TODO: Add other types as needed
