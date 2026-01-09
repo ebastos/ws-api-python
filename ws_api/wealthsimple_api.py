@@ -555,9 +555,11 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             direction = 'to' if act['subType'] == 'SOURCE' else 'from'
             act['description'] = f"Money transfer: {direction} Wealthsimple {account_description}"
 
-        elif act['type'] in ['DIY_BUY', 'DIY_SELL']:
+        elif act['type'] in ['DIY_BUY', 'DIY_SELL', 'MANAGED_BUY', 'MANAGED_SELL']:
             verb = act['subType'].replace('_', ' ').capitalize()
-            action = 'buy' if act['type'] == 'DIY_BUY' else 'sell'
+            if 'MANAGED' in act['type']:
+                verb = "Managed transaction"
+            action = 'buy' if act['type'] == 'DIY_BUY' or act['type'] == 'MANAGED_BUY' else 'sell'
             security = self.security_id_to_symbol(act['securityId'])
             if act['assetQuantity'] is None:
                 act['description'] = (
