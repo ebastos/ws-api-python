@@ -556,9 +556,6 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             act['description'] = f"Money transfer: {direction} Wealthsimple {account_description}"
 
         elif act['type'] in ['DIY_BUY', 'DIY_SELL', 'MANAGED_BUY', 'MANAGED_SELL']:
-            # subType is None in some cases, so we can't rely on it up front.
-            # This could be the case for MANAGED actions, so we handle that separately.
-            verb = ''
             if 'MANAGED' in act['type']:
                 verb = "Managed transaction"
             else:
