@@ -157,37 +157,41 @@ def _format_corporate_action_subdivision(act: dict, api_context) -> bool:
     return True
 
 
-def _format_credit_card_description(act: dict) -> str | None:
+def _format_credit_card_description(act: dict) -> bool:
     """Format description for credit card activities.
 
     Args:
-        act: Activity dictionary.
+        act: Activity dictionary to modify in place.
 
     Returns:
-        Formatted description string, or None if not a credit card activity.
+        True if this was a credit card activity and was handled, False otherwise.
     """
     if act["type"] == "CREDIT_CARD" and act["subType"] == "PURCHASE":
         merchant = act["spendMerchant"]
         # Posted purchase transactions have status = settled
         status = "(Pending) " if act["status"] == "authorized" else ""
-        return f"{status}Credit card purchase: {merchant}"
+        act["description"] = f"{status}Credit card purchase: {merchant}"
+        return True
 
     if act["type"] == "CREDIT_CARD" and act["subType"] == "HOLD":
         merchant = act["spendMerchant"]
         # Posted return transactions have subType = REFUND and status = settled
         status = "(Pending) " if act["status"] == "authorized" else ""
-        return f"{status}Credit card refund: {merchant}"
+        act["description"] = f"{status}Credit card refund: {merchant}"
+        return True
 
     if act["type"] == "CREDIT_CARD" and act["subType"] == "REFUND":
         merchant = act["spendMerchant"]
-        return f"Credit card refund: {merchant}"
+        act["description"] = f"Credit card refund: {merchant}"
+        return True
 
     if (act["type"] == "CREDIT_CARD" and act["subType"] == "PAYMENT") or act[
         "type"
     ] == "CREDIT_CARD_PAYMENT":
-        return "Credit card payment"
+        act["description"] = "Credit card payment"
+        return True
 
-    return None
+    return False
 
 
 def format_activity_description(act: dict, api_context) -> None:
@@ -333,8 +337,8 @@ def format_activity_description(act: dict, api_context) -> None:
         type_ = act["type"].capitalize()
         act["description"] = f"{type_}"
 
-    elif credit_card_desc := _format_credit_card_description(act):
-        act["description"] = credit_card_desc
+    elif _format_credit_card_description(act):
+        pass  # Handled by helper function
 
     elif act["type"] == "REIMBURSEMENT" and act["subType"] == "CASHBACK":
         program = (
