@@ -212,7 +212,10 @@ def format_activity_description(act: dict, api_context) -> None:
     """
     act["description"] = f"{act['type']}: {act['subType']}"
 
-    if act["type"] == "INTERNAL_TRANSFER" or act["type"] == "ASSET_MOVEMENT":
+    if _format_corporate_action_subdivision(act, api_context) or _format_institutional_transfer(act, api_context) or _format_credit_card_description(act):
+        pass  # Handled by helper function
+
+    elif act["type"] == "INTERNAL_TRANSFER" or act["type"] == "ASSET_MOVEMENT":
         accounts = api_context.get_accounts(False)
         matching = [acc for acc in accounts if acc["id"] == act["opposingAccountId"]]
         target_account = matching.pop() if matching else None
@@ -244,9 +247,6 @@ def format_activity_description(act: dict, api_context) -> None:
                 f"{verb}: {action} {float(act['assetQuantity'])} x "
                 f"{security} @ {float(act['amount']) / float(act['assetQuantity'])}"
             )
-
-    elif _format_corporate_action_subdivision(act, api_context):
-        pass  # Handled by helper function
 
     elif act["type"] in ["DEPOSIT", "WITHDRAWAL"] and act["subType"] in [
         "E_TRANSFER",
@@ -281,8 +281,6 @@ def format_activity_description(act: dict, api_context) -> None:
     elif act["type"] == "REFUND" and act["subType"] == "TRANSFER_FEE_REFUND":
         act["description"] = "Reimbursement: account transfer fee"
 
-    elif _format_institutional_transfer(act, api_context):
-        pass  # Handled by helper function
     elif act["type"] == "INTEREST":
         if act["subType"] == "FPL_INTEREST":
             act["description"] = "Stock Lending Earnings"
@@ -339,9 +337,6 @@ def format_activity_description(act: dict, api_context) -> None:
     elif act["type"] == "REFERRAL" and act["subType"] is None:
         type_ = act["type"].capitalize()
         act["description"] = f"{type_}"
-
-    elif _format_credit_card_description(act):
-        pass  # Handled by helper function
 
     elif act["type"] == "REIMBURSEMENT" and act["subType"] == "CASHBACK":
         program = (
