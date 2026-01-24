@@ -688,6 +688,7 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             "array",
         )
 
+        transactions = []
         if isinstance(statements, list) and len(statements) > 0:
             statement = statements[0]
             data = statement.get("data") if "data" in statement else {}
@@ -695,8 +696,6 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
                 data.get("currentTransactions") if "currentTransactions" in data else []
             )
 
-        if not transactions:
-            return []
         if not isinstance(transactions, list):
             raise WSApiException(
                 f"Unexpected response format: {self.get_statement_transactions.__name__}",
