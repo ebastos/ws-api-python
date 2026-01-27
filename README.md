@@ -102,25 +102,30 @@ class WSApiTest:
                 # This is an "unknown" account, for which description is generic; please open an issue on https://github.com/gboudreau/ws-api-python/issues and include the following:
                 print(f"    Unknown account: {account}")
 
-            if account['currency'] == 'CAD':
-                value = account['financials']['currentCombined']['netLiquidationValue']['amount']
-                print(f"  Net worth: {value} {account['currency']}")    
-            # Note: For USD accounts, value is the CAD value converted to USD
-            # For USD accounts, only the balance & positions are relevant
-    
-            # Cash and positions balances
-            balances = ws.get_account_balances(account['id'])
-            cash_balance_key = 'sec-c-usd' if account['currency'] == 'USD' else 'sec-c-cad'
-            cash_balance = float(balances.get(cash_balance_key, 0))
-            print(f"  Available (cash) balance: {cash_balance} {account['currency']}")
-    
-            if len(balances) > 1:
-                print("  Assets:")
-                for security, bal in balances.items():
-                    if security in ['sec-c-cad', 'sec-c-usd']:
-                        continue
-                    print(f"  - {security} x {bal}")
-    
+            if 'credit-card' in account['id']:
+                cc_infos = ws.get_creditcard_account(account['id'])
+                balance = cc_infos['balance']['current']
+                print(f"  Credit card balance: {balance} CAD")
+            else:
+                if account['currency'] == 'CAD':
+                    value = account['financials']['currentCombined']['netLiquidationValue']['amount']
+                    print(f"  Net worth: {value} {account['currency']}")    
+                # Note: For USD accounts, value is the CAD value converted to USD
+                # For USD accounts, only the balance & positions are relevant
+        
+                # Cash and positions balances
+                balances = ws.get_account_balances(account['id'])
+                cash_balance_key = 'sec-c-usd' if account['currency'] == 'USD' else 'sec-c-cad'
+                cash_balance = float(balances.get(cash_balance_key, 0))
+                print(f"  Available (cash) balance: {cash_balance} {account['currency']}")
+        
+                if len(balances) > 1:
+                    print("  Assets:")
+                    for security, bal in balances.items():
+                        if security in ['sec-c-cad', 'sec-c-usd']:
+                            continue
+                        print(f"  - {security} x {bal}")
+        
             print("  Historical Value & Gains:")
             historical_fins = ws.get_account_historical_financials(account['id'], account['currency'])            
             for hf in historical_fins:
