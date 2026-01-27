@@ -232,16 +232,29 @@ def format_activity_description(act: dict, api_context) -> None:
             f"Money transfer: {direction} Wealthsimple {account_description}"
         )
 
-    elif act["type"] in ["DIY_BUY", "DIY_SELL", "MANAGED_BUY", "MANAGED_SELL"]:
+    elif act["type"] == "LEGACY_INTERNAL_TRANSFER":
+        act["description"] = "Transfer in" if act["subType"] == "DESTINATION" else "Transfer out"
+
+    elif act["type"] == "CRYPTO_STAKING_ACTION":
+        action = "stake" if act["subType"] == "STAKE" else "unstake"
+        security = api_context.security_id_to_symbol(act["securityId"])
+        act["description"] = f"Crypto {action}: {float(act['assetQuantity'])} x {security}"
+
+    if act["type"] == "CRYPTO_TRANSFER":
+        action = "sent" if act["subType"] == "TRANSFER_OUT" else "received"
+        security = api_context.security_id_to_symbol(act["securityId"])
+        act["description"] = (
+            f"Crypto {action}: {float(act['assetQuantity'])} x {security}"
+        )
+
+    elif act["type"] in ["DIY_BUY", "DIY_SELL", "MANAGED_BUY", "MANAGED_SELL", "CRYPTO_BUY", "CRYPTO_SELL"]:
         if "MANAGED" in act["type"]:
             verb = "Managed transaction"
         else:
             verb = act["subType"].replace("_", " ").capitalize()
-        action = (
-            "buy"
-            if act["type"] == "DIY_BUY" or act["type"] == "MANAGED_BUY"
-            else "sell"
-        )
+            if "CRYPTO" in act["type"]:
+                verb = f"Crypto {verb}"
+        action = "buy" if "_BUY"  in act["type"] else "sell"
         security = api_context.security_id_to_symbol(act["securityId"])
         if act["assetQuantity"] is None:
             act["description"] = f"{verb}: {action} TBD"
@@ -283,6 +296,9 @@ def format_activity_description(act: dict, api_context) -> None:
 
     elif act["type"] == "REFUND" and act["subType"] == "TRANSFER_FEE_REFUND":
         act["description"] = "Reimbursement: account transfer fee"
+
+    elif act["type"] == "REFUND":
+        act["description"] = "Refund"
 
     elif act["type"] == "INTEREST":
         if act["subType"] == "FPL_INTEREST":
@@ -348,6 +364,12 @@ def format_activity_description(act: dict, api_context) -> None:
             else ""
         )
         act["description"] = f"Cash back {program}".rstrip()
+
+    elif act["type"] == "REIMBURSEMENT" and act["subType"] == "ETF_REBATE":
+        act["description"] = "Reimbursement: Exchange-traded fund rebate"
+
+    elif act["type"] == "REIMBURSEMENT" and act["subType"] == "REWARD":
+        act["description"] = "Reimbursement: Reward"
 
     elif act["type"] == "SPEND" and act["subType"] == "PREPAID":
         merchant = act["spendMerchant"]
