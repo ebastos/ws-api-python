@@ -56,6 +56,8 @@ def format_account_description(account: dict) -> None:
             account["description"] = "Non-registered: managed - private credit"
         elif "PRIVATE_EQUITY" in features:
             account["description"] = "Non-registered: managed - private equity"
+        elif "MANAGED" in features:
+            account["description"] = "Non-registered: managed"
         else:
             account["description"] = account_type
     # Simple lookup for all other types
