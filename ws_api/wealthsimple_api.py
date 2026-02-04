@@ -404,6 +404,10 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
         super().__init__(sess)
         self.account_cache = {}
 
+    @staticmethod
+    def _iso_z(dt: datetime | None) -> str | None:
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ") if dt else None
+
     def get_accounts(self, open_only=True, use_cache=True):
         cache_key = "open" if open_only else "all"
         if not use_cache or cache_key not in self.account_cache:
@@ -462,12 +466,8 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             {
                 "id": account_id,
                 "currency": currency,
-                "startDate": start_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                if start_date
-                else None,
-                "endDate": end_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                if end_date
-                else None,
+                "startDate": self._iso_z(start_date),
+                "endDate": self._iso_z(end_date),
                 "resolution": resolution,
                 "first": first,
                 "cursor": cursor,
@@ -490,12 +490,8 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             {
                 "identityId": self.get_token_info().get("identity_canonical_id"),
                 "currency": currency,
-                "startDate": start_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                if start_date
-                else None,
-                "endDate": end_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                if end_date
-                else None,
+                "startDate": self._iso_z(start_date),
+                "endDate": self._iso_z(end_date),
                 "first": first,
                 "cursor": cursor,
                 "accountIds": account_ids or [],
@@ -557,10 +553,8 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
                 "orderBy": order_by,
                 "first": how_many,
                 "condition": {
-                    "startDate": start_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                    if start_date
-                    else None,
-                    "endDate": end_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "startDate": self._iso_z(start_date),
+                    "endDate": self._iso_z(end_date),
                     "accountIds": account_id,
                 },
             },
