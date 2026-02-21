@@ -200,6 +200,79 @@ def _format_credit_card_description(act: dict) -> bool:
     return False
 
 
+def _format_internal_transfer(act: dict, api_context) -> bool:
+    """Format description for internal transfer activities."""
+    if act["type"] not in ("INTERNAL_TRANSFER", "ASSET_MOVEMENT"):
+        return False
+
+    accounts = api_context.get_accounts(False)
+    matching = [acc for acc in accounts if acc["id"] == act["opposingAccountId"]]
+    target_account = matching.pop() if matching else None
+    account_description = (
+        f"{target_account['description']} ({target_account['number']})"
+        if target_account
+        else act["opposingAccountId"]
+    )
+    direction = "to" if act["subType"] == "SOURCE" else "from"
+    act["description"] = (
+        f"Money transfer: {direction} Wealthsimple {account_description}"
+    )
+    return True
+
+
+def _format_trade(act: dict, api_context) -> bool:
+    """Format description for trade activities."""
+    if act["type"] not in (
+        "DIY_BUY",
+        "DIY_SELL",
+        "MANAGED_BUY",
+        "MANAGED_SELL",
+        "CRYPTO_BUY",
+        "CRYPTO_SELL",
+    ):
+        return False
+
+    if "MANAGED" in act["type"]:
+        verb = "Managed transaction"
+    else:
+        verb = act["subType"].replace("_", " ").capitalize()
+        if "CRYPTO" in act["type"]:
+            verb = f"Crypto {verb}"
+    action = "buy" if "_BUY" in act["type"] else "sell"
+    security = api_context.security_id_to_symbol(act["securityId"])
+    if act["assetQuantity"] is None:
+        act["description"] = f"{verb}: {action} TBD"
+    else:
+        act["description"] = (
+            f"{verb}: {action} {float(act['assetQuantity'])} x "
+            f"{security} @ {float(act['amount']) / float(act['assetQuantity'])}"
+        )
+    return True
+
+
+def _format_eft(act: dict, api_context) -> bool:
+    """Format description for EFT activities."""
+    if act["subType"] != "EFT":
+        return False
+
+    details = api_context.get_etf_details(act["externalCanonicalId"])
+    type_ = act["type"].lower().capitalize()
+    direction = "from" if act["type"] == "DEPOSIT" else "to"
+    prop = "source" if act["type"] == "DEPOSIT" else "destination"
+    bank_account_info = {}
+    if isinstance(details, dict):
+        bank_account_info = details.get(prop, {})
+    bank_account = {}
+    if isinstance(bank_account_info, dict):
+        bank_account = bank_account_info.get("bankAccount", {})
+    nickname = bank_account.get("nickname")
+    account_number = bank_account.get("accountNumber")
+    if not nickname:
+        nickname = bank_account.get("accountName")
+    act["description"] = f"{type_}: EFT {direction} {nickname} {account_number}"
+    return True
+
+
 def format_activity_description(act: dict, api_context) -> None:
     """Add human-readable description to an activity dict.
 
@@ -215,30 +288,27 @@ def format_activity_description(act: dict, api_context) -> None:
     """
     act["description"] = f"{act['type']}: {act['subType']}"
 
-    if _format_corporate_action_subdivision(act, api_context) or _format_institutional_transfer(act, api_context) or _format_credit_card_description(act):
+    if (
+        _format_corporate_action_subdivision(act, api_context)
+        or _format_institutional_transfer(act, api_context)
+        or _format_credit_card_description(act)
+        or _format_internal_transfer(act, api_context)
+        or _format_trade(act, api_context)
+        or _format_eft(act, api_context)
+    ):
         pass  # Handled by helper function
 
-    elif act["type"] == "INTERNAL_TRANSFER" or act["type"] == "ASSET_MOVEMENT":
-        accounts = api_context.get_accounts(False)
-        matching = [acc for acc in accounts if acc["id"] == act["opposingAccountId"]]
-        target_account = matching.pop() if matching else None
-        account_description = (
-            f"{target_account['description']} ({target_account['number']})"
-            if target_account
-            else act["opposingAccountId"]
-        )
-        direction = "to" if act["subType"] == "SOURCE" else "from"
-        act["description"] = (
-            f"Money transfer: {direction} Wealthsimple {account_description}"
-        )
-
     elif act["type"] == "LEGACY_INTERNAL_TRANSFER":
-        act["description"] = "Transfer in" if act["subType"] == "DESTINATION" else "Transfer out"
+        act["description"] = (
+            "Transfer in" if act["subType"] == "DESTINATION" else "Transfer out"
+        )
 
     elif act["type"] == "CRYPTO_STAKING_ACTION":
         action = "stake" if act["subType"] == "STAKE" else "unstake"
         security = api_context.security_id_to_symbol(act["securityId"])
-        act["description"] = f"Crypto {action}: {float(act['assetQuantity'])} x {security}"
+        act["description"] = (
+            f"Crypto {action}: {float(act['assetQuantity'])} x {security}"
+        )
 
     elif act["type"] == "CRYPTO_TRANSFER":
         action = "sent" if act["subType"] == "TRANSFER_OUT" else "received"
@@ -246,23 +316,6 @@ def format_activity_description(act: dict, api_context) -> None:
         act["description"] = (
             f"Crypto {action}: {float(act['assetQuantity'])} x {security}"
         )
-
-    elif act["type"] in ["DIY_BUY", "DIY_SELL", "MANAGED_BUY", "MANAGED_SELL", "CRYPTO_BUY", "CRYPTO_SELL"]:
-        if "MANAGED" in act["type"]:
-            verb = "Managed transaction"
-        else:
-            verb = act["subType"].replace("_", " ").capitalize()
-            if "CRYPTO" in act["type"]:
-                verb = f"Crypto {verb}"
-        action = "buy" if "_BUY"  in act["type"] else "sell"
-        security = api_context.security_id_to_symbol(act["securityId"])
-        if act["assetQuantity"] is None:
-            act["description"] = f"{verb}: {action} TBD"
-        else:
-            act["description"] = (
-                f"{verb}: {action} {float(act['assetQuantity'])} x "
-                f"{security} @ {float(act['amount']) / float(act['assetQuantity'])}"
-            )
 
     elif act["type"] in ["DEPOSIT", "WITHDRAWAL"] and act["subType"] in [
         "E_TRANSFER",
@@ -276,23 +329,6 @@ def format_activity_description(act: dict, api_context) -> None:
     elif act["type"] == "DEPOSIT" and act["subType"] == "PAYMENT_CARD_TRANSACTION":
         type_ = act["type"].lower().capitalize()
         act["description"] = f"{type_}: Debit card funding"
-
-    elif act["subType"] == "EFT":
-        details = api_context.get_etf_details(act["externalCanonicalId"])
-        type_ = act["type"].lower().capitalize()
-        direction = "from" if act["type"] == "DEPOSIT" else "to"
-        prop = "source" if act["type"] == "DEPOSIT" else "destination"
-        bank_account_info = {}
-        if isinstance(details, dict):
-            bank_account_info = details.get(prop, {})
-        bank_account = {}
-        if isinstance(bank_account_info, dict):
-            bank_account = bank_account_info.get("bankAccount", {})
-        nickname = bank_account.get("nickname")
-        account_number = bank_account.get("accountNumber")
-        if not nickname:
-            nickname = bank_account.get("accountName")
-        act["description"] = f"{type_}: EFT {direction} {nickname} {account_number}"
 
     elif act["type"] == "REFUND" and act["subType"] == "TRANSFER_FEE_REFUND":
         act["description"] = "Reimbursement: account transfer fee"
