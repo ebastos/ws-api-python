@@ -73,6 +73,10 @@ class WSApiTest:
         ws.set_security_market_data_cache(sec_info_getter_fn, sec_info_setter_fn)
 
         # 4. Use the API object to access your WS accounts
+
+        net_worth = ws.get_net_worth_with_history("HOUSEHOLD", "CAD")
+        print("Household Net Worth: %.2f" % float(net_worth["balance"]["amount"]))
+
         accounts = ws.get_accounts()
 
         print("All Accounts Historical Value & Gains:")

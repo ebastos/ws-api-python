@@ -1015,3 +1015,82 @@ class WealthsimpleAPI(WealthsimpleAPIBase):
             "identity.financials.dividendsV2",
             "object",
         )
+
+    def get_net_worth_accounts(self) -> Any:
+        variables = {
+            "identityId": self.get_token_info().get("identity_canonical_id"),
+            "pageSize": 100,
+            "filter": {
+                "archived": False,
+                "closed": False,
+            },
+        }
+        result = self.do_graphql_query(
+            "FetchIdentityNetWorthAccounts",
+            variables,
+            "identity.netWorth",
+            "object",
+        )
+        return {
+            "accounts": [edge["node"] for edge in result["accounts"]["edges"]],
+            "externalFinancialEntities": result["externalFinancialEntities"],
+        }
+
+    def get_net_worth_with_history(
+        self,
+        account_scope: str = "HOUSEHOLD",
+        currency: str = "CAD",
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        account_ids: list[str] | None = None,
+        external_entity_ids: list[str] | None = None,
+    ):
+        """Fetch the Net worth of the user, or their household.
+
+        Returns an object that gives the current balance, and historical values
+        between the start and end dates (defaults to -30 days until now).
+
+        Args:
+            account_scope (str, optional): HOUSEHOLD or OWN. Defaults to HOUSEHOLD.
+            currency (str, optional): Currency for the financials. CAD or USD. Defaults to CAD.
+            start_date (datetime, optional): Start date for historical data. Defaults to end_date minus 30 days.
+            end_date (datetime, optional): End date for historical data. Defaults to today.
+            account_ids(list[str], optional): Account IDs to filter by. Defaults to all accounts. Use ws.get_net_worth_accounts().get("accounts") otherwise.
+            external_entity_ids(list[str], optional): External entity IDs to filter by. Defaults to all entities. Use ws.get_net_worth_accounts().get("externalFinancialEntities") otherwise.
+        """
+
+        if end_date is None:
+            end_date = datetime.today()
+        if not start_date:
+            start_date = end_date - timedelta(days=30)
+
+        if account_ids is None or external_entity_ids is None:
+            nw_accounts = self.get_net_worth_accounts()
+            nw_ws_accounts = nw_accounts["accounts"]
+            nw_ext_accounts = nw_accounts["externalFinancialEntities"]
+
+            if account_ids is None:
+                account_ids = [account["id"] for account in nw_ws_accounts]
+            if external_entity_ids is None:
+                external_entity_ids = [account["id"] for account in nw_ext_accounts]
+
+        variables = {
+            "identityId": self.get_token_info().get("identity_canonical_id"),
+            "accountIds": account_ids,
+            "externalFinancialEntityIds": external_entity_ids,
+            "accountScope": account_scope,
+            "currency": currency,
+            "startDate": self._iso_z(start_date),
+            "endDate": self._iso_z(end_date),
+        }
+        result = self.do_graphql_query(
+            "FetchIdentityNetWorthFinancials",
+            variables,
+            "identity.netWorth.financials",
+            "object",
+        )
+
+        return {
+            "balance": result["current"]["balance"],
+            "historicalDaily": [edge["node"] for edge in result["historicalDaily"]["edges"]]
+        }
